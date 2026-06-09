@@ -42,18 +42,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const transporter = nodemailer.createTransport({
+    const port = smtpConfig.port || 587
+    // Port 465 uses SSL/TLS directly (secure: true)
+    // Port 587 uses STARTTLS (secure: false, TLS is negotiated after connection)
+    const isSecurePort = port === 465 || smtpConfig.secure === true
+
+    const transportConfig: any = {
       host: smtpConfig.host,
-      port: smtpConfig.port || 587,
-      secure: smtpConfig.secure || false,
+      port,
+      secure: isSecurePort,
       auth: {
         user: smtpConfig.user,
         pass: smtpConfig.pass,
       },
-      tls: {
+      pool: true,
+      maxConnections: 5,
+    }
+
+    if (!isSecurePort) {
+      transportConfig.tls = {
         rejectUnauthorized: false,
-      },
-    })
+      }
+    }
+
+    const transporter = nodemailer.createTransport(transportConfig)
+
+    // Verify connection before sending
+    try {
+      await transporter.verify()
+    } catch (verifyErr: any) {
+      console.error('SMTP verification failed:', verifyErr)
+      return NextResponse.json(
+        {
+          error:
+            'SMTP authentication failed. Please check: 1) Email/password are correct, 2) You are using an App Password (not your regular login password), 3) Your email provider allows SMTP access.',
+          detail: verifyErr.message || 'Unknown error',
+        },
+        { status: 401 }
+      )
+    }
 
     const results = []
 

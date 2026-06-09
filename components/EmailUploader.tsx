@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Upload, Loader2, ImageIcon, X, Mail } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { Upload, Loader2, ImageIcon, X, Mail, Clipboard } from 'lucide-react'
 
 interface EmailUploaderProps {
   onEmailsExtracted: (emails: string[]) => void
@@ -19,6 +19,7 @@ export default function EmailUploader({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extractedText, setExtractedText] = useState<string | null>(null)
   const [manualEmail, setManualEmail] = useState('')
+  const [pasteHint, setPasteHint] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -30,7 +31,13 @@ export default function EmailUploader({
     setIsDragging(false)
   }, [])
 
-  const processFile = async (file: File) => {
+  const extractEmailsFromText = (text: string): string[] => {
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+    const extractedEmails = text.match(emailRegex) || []
+    return Array.from(new Set(extractedEmails))
+  }
+
+  const processFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (PNG, JPG, JPEG)')
       return
@@ -42,29 +49,29 @@ export default function EmailUploader({
     setExtractedText(null)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res = await fetch('/api/extract-emails', {
-        method: 'POST',
-        body: formData,
+      const { createWorker } = await import('tesseract.js')
+      const worker = await createWorker('eng', 1, {
+        logger: () => {},
+        errorHandler: () => {},
       })
+      const ret = await worker.recognize(file)
+      const text = ret.data.text
+      await worker.terminate()
 
-      const data = await res.json()
+      const uniqueEmails = extractEmailsFromText(text)
 
-      if (data.success) {
-        onEmailsExtracted(data.emails)
-        setExtractedText(data.rawText)
-      } else {
-        alert(data.error || 'Extraction failed')
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Failed to extract emails from image')
+      onEmailsExtracted(uniqueEmails)
+      setExtractedText(text)
+    } catch (err: any) {
+      console.error('OCR error:', err)
+      alert(
+        'Failed to extract emails from image. ' +
+          (err?.message || 'Please try a clearer screenshot or add emails manually.')
+      )
     } finally {
       setIsExtracting(false)
     }
-  }
+  }, [onEmailsExtracted])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -73,13 +80,41 @@ export default function EmailUploader({
       const file = e.dataTransfer.files[0]
       if (file) processFile(file)
     },
-    []
+    [processFile]
   )
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) processFile(file)
   }
+
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      if (!e.clipboardData || !e.clipboardData.items) return
+
+      const items = Array.from(e.clipboardData.items)
+      const imageItem = items.find((item) => item.type.startsWith('image/'))
+
+      if (imageItem) {
+        e.preventDefault()
+        const file = imageItem.getAsFile()
+        if (file) {
+          await processFile(file)
+        }
+      }
+    },
+    [processFile]
+  )
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [handlePaste])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPasteHint(true), 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   const addManualEmail = () => {
     const trimmed = manualEmail.trim()
@@ -151,6 +186,12 @@ export default function EmailUploader({
                     <p className="text-gray-500 text-sm mt-1">
                       or click to browse (PNG, JPG)
                     </p>
+                    {pasteHint && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200 animate-in fade-in duration-500">
+                        <Clipboard className="w-3 h-3" />
+                        You can also paste screenshot with Ctrl+V
+                      </div>
+                    )}
                   </div>
                 </>
               )}

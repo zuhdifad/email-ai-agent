@@ -40,6 +40,16 @@ const PRESETS: Record<string, SmtpConfig> = {
   },
 }
 
+const PRESET_HINTS: Record<string, string> = {
+  gmail:
+    'Gmail requires an App Password. Enable 2FA, then generate an App Password at myaccount.google.com/apppasswords.',
+  outlook:
+    'Outlook/Office365 requires an App Password if 2FA is enabled. Generate one at account.live.com/proofs/AppPassword.',
+  alibaba:
+    'Alibaba Cloud Email uses a Client Authorization Password (not your login password). Generate it in the mail console under Settings > Client Password.',
+  custom: '',
+}
+
 export default function EmailConfig({ config, onConfigChange }: EmailConfigProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState('custom')
@@ -86,6 +96,12 @@ export default function EmailConfig({ config, onConfigChange }: EmailConfigProps
           ))}
         </div>
       </div>
+
+      {PRESET_HINTS[selectedPreset] && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <strong>Setup Tip:</strong> {PRESET_HINTS[selectedPreset]}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

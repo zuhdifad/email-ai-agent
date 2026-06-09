@@ -70,7 +70,8 @@ export default function EmailComposer({
         setBody('')
         onSendComplete()
       } else {
-        alert(data.error || 'Failed to send emails')
+        const detail = data.detail ? `\n\nDetail: ${data.detail}` : ''
+        alert((data.error || 'Failed to send emails') + detail)
       }
     } catch (err) {
       console.error(err)
