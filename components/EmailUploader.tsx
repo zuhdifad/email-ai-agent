@@ -10,9 +10,8 @@ import {
   Clipboard,
   Sparkles,
 } from 'lucide-react'
-import OutreachTemplateModal, {
-  GeneratedTemplate,
-} from '@/components/OutreachTemplateModal'
+import OutreachTemplateModal from '@/components/OutreachTemplateModal'
+import { GeneratedTemplate } from '@/lib/templates'
 
 interface EmailUploaderProps {
   onEmailsExtracted: (emails: string[]) => void

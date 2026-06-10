@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.DASHSCOPE_API_KEY,
-  baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-});
+function getOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.DASHSCOPE_API_KEY,
+    baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+  })
+}
 
 function buildPrompt(email: string, name?: string, company?: string): string {
   let context = `Email: ${email}`
@@ -54,6 +56,7 @@ async function tryGenerate(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      const openai = getOpenAIClient()
       const response = await openai.chat.completions.create({
         model: 'qwen-turbo',
         messages: [
