@@ -20,6 +20,8 @@ export default function Home() {
     user: 'zuhdifadh@alibaba-inc.com',
     pass: '',
   })
+  const [templateSubject, setTemplateSubject] = useState('')
+  const [templateBody, setTemplateBody] = useState('')
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'upload', label: 'Upload & Extract', icon: <Upload className="w-4 h-4" /> },
@@ -35,6 +37,12 @@ export default function Home() {
   const handleSendComplete = () => {
     setRefreshTrigger((prev) => prev + 1)
     setActiveTab('status')
+  }
+
+  const handleUseTemplate = (subject: string, body: string) => {
+    setTemplateSubject(subject)
+    setTemplateBody(body)
+    setActiveTab('compose')
   }
 
   return (
@@ -88,6 +96,7 @@ export default function Home() {
                 onEmailsExtracted={handleEmailsExtracted}
                 emails={emails}
                 onEmailsChange={setEmails}
+                onUseTemplate={handleUseTemplate}
               />
             </div>
           )}
@@ -120,6 +129,8 @@ export default function Home() {
                 emails={emails}
                 smtpConfig={smtpConfig}
                 onSendComplete={handleSendComplete}
+                initialSubject={templateSubject}
+                initialBody={templateBody}
               />
             </div>
           )}

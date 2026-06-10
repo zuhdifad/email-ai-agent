@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Send, Loader2, FileText } from 'lucide-react'
 
 interface EmailComposerProps {
@@ -13,15 +13,24 @@ interface EmailComposerProps {
     pass: string
   }
   onSendComplete: () => void
+  initialSubject?: string
+  initialBody?: string
 }
 
 export default function EmailComposer({
   emails,
   smtpConfig,
   onSendComplete,
+  initialSubject = '',
+  initialBody = '',
 }: EmailComposerProps) {
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+
+  useEffect(() => {
+    if (initialSubject) setSubject(initialSubject)
+    if (initialBody) setBody(initialBody)
+  }, [initialSubject, initialBody])
   const [isSending, setIsSending] = useState(false)
   const [sendResult, setSendResult] = useState<{
     total: number

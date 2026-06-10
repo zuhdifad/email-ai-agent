@@ -1,18 +1,31 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, Loader2, ImageIcon, X, Mail, Clipboard } from 'lucide-react'
+import {
+  Upload,
+  Loader2,
+  ImageIcon,
+  X,
+  Mail,
+  Clipboard,
+  Sparkles,
+} from 'lucide-react'
+import OutreachTemplateModal, {
+  GeneratedTemplate,
+} from '@/components/OutreachTemplateModal'
 
 interface EmailUploaderProps {
   onEmailsExtracted: (emails: string[]) => void
   emails: string[]
   onEmailsChange: (emails: string[]) => void
+  onUseTemplate?: (subject: string, body: string) => void
 }
 
 export default function EmailUploader({
   onEmailsExtracted,
   emails,
   onEmailsChange,
+  onUseTemplate,
 }: EmailUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -20,6 +33,11 @@ export default function EmailUploader({
   const [extractedText, setExtractedText] = useState<string | null>(null)
   const [manualEmail, setManualEmail] = useState('')
   const [pasteHint, setPasteHint] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedEmail, setSelectedEmail] = useState('')
+  const [emailTemplates, setEmailTemplates] = useState<
+    Record<string, GeneratedTemplate>
+  >({})
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -125,7 +143,24 @@ export default function EmailUploader({
   }
 
   const removeEmail = (email: string) => {
-    onEmailsChange(emails.filter(e => e !== email))
+    onEmailsChange(emails.filter((e) => e !== email))
+  }
+
+  const openTemplateModal = (email: string) => {
+    setSelectedEmail(email)
+    setModalOpen(true)
+  }
+
+  const closeTemplateModal = () => {
+    setModalOpen(false)
+    setSelectedEmail('')
+  }
+
+  const handleTemplateGenerated = (
+    email: string,
+    template: GeneratedTemplate
+  ) => {
+    setEmailTemplates((prev) => ({ ...prev, [email]: template }))
   }
 
   return (
@@ -229,9 +264,9 @@ export default function EmailUploader({
       </div>
 
       {emails.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-gray-800">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+            <h4 className="font-semibold text-gray-800 text-sm">
               Recipients ({emails.length})
             </h4>
             <button
@@ -241,24 +276,57 @@ export default function EmailUploader({
               Clear all
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="divide-y divide-gray-100">
             {emails.map((email) => (
-              <span
+              <div
                 key={email}
-                className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm border border-primary-200"
+                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50/50 transition-colors"
               >
-                {email}
-                <button
-                  onClick={() => removeEmail(email)}
-                  className="hover:text-primary-900"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center shrink-0">
+                    <Mail className="w-3.5 h-3.5 text-primary-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {email}
+                    </p>
+                    {emailTemplates[email] && (
+                      <p className="text-xs text-green-600 mt-0.5">
+                        Template ready
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-3">
+                  <button
+                    onClick={() => openTemplateModal(email)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-md border border-primary-200 transition-colors"
+                    title="Generate AI outreach template"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {emailTemplates[email] ? 'View' : 'Generate'}
+                  </button>
+                  <button
+                    onClick={() => removeEmail(email)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Remove email"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       )}
+
+      <OutreachTemplateModal
+        isOpen={modalOpen}
+        onClose={closeTemplateModal}
+        email={selectedEmail}
+        initialTemplate={selectedEmail ? emailTemplates[selectedEmail] || null : null}
+        onUseTemplate={onUseTemplate}
+      />
     </div>
   )
 }
