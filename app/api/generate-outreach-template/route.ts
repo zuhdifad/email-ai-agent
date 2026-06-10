@@ -1,5 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import OpenAI from "openai";
+
+// Arahkan ke DashScope (Qwen)
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.DASHSCOPE_API_KEY,
+  baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+});
+
+async function chatWithQwen(prompt) {
+  const completion = await openai.chat.completions.create({
+    model: "qwen3.5-flash",  // 👈 Ganti model OpenAI jadi model Qwen
+    messages: [
+      { role: "system", content: "You are a helpful coding assistant." },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+  });
+
+  return completion.choices[0].message.content;
+}
+
+// Usage
+chatWithQwen("Buatkan fungsi Python untuk hitung fibonacci").then(console.log);
 
 function getOpenAIClient() {
   return new OpenAI({
