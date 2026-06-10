@@ -1,36 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from "openai";
 
-// Arahkan ke DashScope (Qwen)
-import OpenAI from "openai";
-
 const openai = new OpenAI({
   apiKey: process.env.DASHSCOPE_API_KEY,
   baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
 });
-
-async function chatWithQwen(prompt) {
-  const completion = await openai.chat.completions.create({
-    model: "qwen3.5-flash",  // 👈 Ganti model OpenAI jadi model Qwen
-    messages: [
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: prompt }
-    ],
-    temperature: 0.7,
-    max_tokens: 2048,
-  });
-
-  return completion.choices[0].message.content;
-}
-
-// Usage
-chatWithQwen("Buatkan fungsi Python untuk hitung fibonacci").then(console.log);
-
-function getOpenAIClient() {
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-}
 
 function buildPrompt(email: string, name?: string, company?: string): string {
   let context = `Email: ${email}`
@@ -80,9 +54,8 @@ async function tryGenerate(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const openai = getOpenAIClient()
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'qwen-turbo',
         messages: [
           {
             role: 'system',
@@ -96,7 +69,6 @@ async function tryGenerate(
         ],
         temperature: 0.7,
         max_tokens: 500,
-        response_format: { type: 'json_object' },
       })
 
       const content = response.choices[0]?.message?.content || '{}'
@@ -113,14 +85,14 @@ async function tryGenerate(
       }
     } catch (err) {
       lastError = err
-      console.error(`OpenAI attempt ${attempt + 1} failed:`, err)
+      console.error(`Qwen attempt ${attempt + 1} failed:`, err)
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
       }
     }
   }
 
-  console.error('All OpenAI retries exhausted. Using fallback template.')
+  console.error('All Qwen retries exhausted. Using fallback template.')
   return getFallbackTemplate(email, name, company)
 }
 
@@ -140,9 +112,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.DASHSCOPE_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenAI API key is not configured' },
+        { error: 'DashScope API key is not configured' },
         { status: 500 }
       )
     }
